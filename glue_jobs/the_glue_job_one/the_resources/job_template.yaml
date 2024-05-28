@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  GlueAssetsRootFolder:
+    Type: String
+    Default: s3://aws-glue-assets-<account_id>-us-east-1/scripts
+  GlueIamRole:
+    Type: String
+    Default: aws_glue_full_access                                                                                                     
+  ScriptFolder:
+    Type: String
+    Default: the_glue_job_one
+  ScriptName:
+    Type: String
+    Default: job_one.py
+  JobName:
+    Type: String
+    Default: TheGlueJobOne
+  HelperFunctions:
+    Type: String
+    Default : helper_functions.py
+  SourcePath:
+    Type: String
+    Default: s3://<bucket>/d_customer/d_customer_two.csv
+  DeltaLakeFormat:
+    Type: String
+    Default: delta
+  MappingFile:
+    Type: String
+    Default: mapping.csv
+  ConfigFile:
+    Type: String
+    Default: config.json
+    
+Resources:
+  GlueJob:
+      Type: AWS::Glue::Job   
+      Properties:
+        Name: !Ref JobName
+        Role: !Ref GlueIamRole
+        Description: Sample boilerplate glue job by Om 
+        Command:   
+          Name: glueetl
+          PythonVersion: 3
+          ScriptLocation: 
+            Fn::Join: [ "/", [!Ref GlueAssetsRootFolder, !Ref ScriptFolder, !Ref ScriptName] ]
+        GlueVersion: 4.0
+        DefaultArguments:
+          "--extra-py-files": 
+              Fn::Join: [ "/", [!ImportValue GlueAssetsLib,!Ref HelperFunctions] ]
+          "--extra-files": 
+              Fn::Join: [ "/", [!Ref GlueAssetsRootFolder, !Ref ScriptFolder, !Ref MappingFile] ]
+          "--datalake-formats": !Ref DeltaLakeFormat
+          "--source_path": !Ref SourcePath
+        NumberOfWorkers: 2
+        WorkerType: G.1X
+        MaxRetries: 0
+        Timeout: 30
+        ExecutionProperty:   
+          MaxConcurrentRuns: 1
+
+
